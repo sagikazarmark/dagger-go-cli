@@ -1,13 +1,19 @@
 package main
 
 import (
+	"strings"
+
 	"dagger.io/dagger"
 	"dagger.io/dagger/core"
 
+	"universe.dagger.io/bash"
 	"universe.dagger.io/go"
 
+	"github.com/sagikazarmark/dagger-go-cli/ci/archive"
 	"github.com/sagikazarmark/dagger-go-cli/ci/codecov"
+	"github.com/sagikazarmark/dagger-go-cli/ci/github"
 	"github.com/sagikazarmark/dagger-go-cli/ci/go/golangci"
+	"github.com/sagikazarmark/dagger-go-cli/ci/go/goreleaser"
 )
 
 dagger.#Plan & {
@@ -29,9 +35,34 @@ dagger.#Plan & {
 		GITHUB_SHA:        string | *""
 		GITHUB_WORKFLOW:   string | *""
 		CODECOV_TOKEN?:    dagger.#Secret
+		GITHUB_TOKEN?:     dagger.#Secret
+		GIT_TAG?:          string
+		GITHUB_REF_NAME?:  string
 	}
+	client: filesystem: "./_build": write: contents: actions.package.output
 	actions: {
 		_source: client.filesystem["."].read.contents
+
+		build: {
+			"linux/amd64":   _
+			"darwin/amd64":  _
+			"windows/amd64": _
+
+			[platform=string]: go.#Build & {
+				source: _source
+
+				package: "."
+				// binaryName: "hello"
+				os:   strings.Split(platform, "/")[0]
+				arch: strings.Split(platform, "/")[1]
+
+				ldflags: "-s -w"
+
+				env: {
+					CGO_ENABLED: "0"
+				}
+			}
+		}
 
 		check: {
 			test: {
@@ -105,6 +136,150 @@ dagger.#Plan & {
 					source:  _source
 					version: "1.46"
 					always:  true
+				}
+			}
+		}
+
+		package: {
+			unix: {
+				"linux/amd64":  _
+				"darwin/amd64": _
+
+				[platform=string]: bash.#Run & {
+					_image: archive.#Image
+
+					input: _image.output
+
+					mounts: {
+						"source": {
+							dest:     "/src"
+							contents: _source
+						}
+						"output": {
+							dest: "/output"
+							if platform == "darwin/amd64" {
+								contents: build."darwin/amd64".output
+							}
+							if platform == "linux/amd64" {
+								contents: build."linux/amd64".output
+							}
+						}
+					}
+
+					export: directories: "/result": _
+
+					_os:   strings.Split(platform, "/")[0]
+					_arch: strings.Split(platform, "/")[1]
+
+					script: contents: """
+mkdir -p /result
+mkdir -p /archive
+cp /output/dagger-go-cli /archive
+cp /src/README.md /archive
+cp /src/LICENSE /archive
+cd /archive
+tar -czvf dagger-go-cli_\(_os)_\(_arch).tar.gz *
+mv *.tar.gz /result
+"""
+				}
+			}
+			windows: bash.#Run & {
+				_image: archive.#Image
+
+				input: _image.output
+
+				mounts: {
+					"source": {
+						dest:     "/src"
+						contents: _source
+					}
+					"output": {
+						dest:     "/output"
+						contents: build."windows/amd64".output
+					}
+				}
+
+				export: directories: "/result": _
+
+				_os:   "windows"
+				_arch: "amd64"
+
+				script: contents: """
+mkdir -p /result
+mkdir -p /archive
+cp /output/dagger-go-cli.exe /archive
+cp /src/README.md /archive
+cp /src/LICENSE /archive
+cd /archive
+7z a dagger-go-cli_\(_os)_\(_arch).zip *
+mv *.zip /result
+"""
+			}
+
+			_packages: core.#Merge & {
+				inputs: [
+					package.unix."linux/amd64".export.directories."/result",
+					package.unix."darwin/amd64".export.directories."/result",
+					package.windows.export.directories."/result",
+				]
+			}
+
+			output: _packages.output
+		}
+
+		release: goreleaser.#Release & {
+			source: _source
+
+			// Fixes https://github.com/dagger/dagger/issues/2680
+			_token: client.env.GITHUB_TOKEN
+
+			env: {
+				if client.env.GITHUB_TOKEN != _|_ {
+					GITHUB_TOKEN: client.env.GITHUB_TOKEN
+				}
+			}
+
+			command: {
+				flags: {
+					"--skip-publish":  true
+					"--skip-announce": true
+					"--snapshot":      true
+				}
+			}
+		}
+
+		release2: github.#Release & {
+			source:    _source
+			artifacts: package.output
+
+			files: [
+				"/artifacts/dagger-go-cli_linux_amd64.tar.gz",
+				"/artifacts/dagger-go-cli_darwin_amd64.tar.gz",
+				"/artifacts/dagger-go-cli_windows_amd64.zip",
+			]
+
+			tag: "v0.0.1"
+
+			// Fixes https://github.com/dagger/dagger/issues/2680
+			_tag1: client.env.GIT_TAG
+
+			if client.env.GIT_TAG != _|_ {
+				tag: client.env.GIT_TAG
+			}
+
+			// Fixes https://github.com/dagger/dagger/issues/2680
+			_tag2: client.env.GITHUB_REF_NAME
+
+			if client.env.GITHUB_REF_NAME != _|_ {
+				tag: client.env.GITHUB_REF_NAME
+			}
+
+			// Fixes https://github.com/dagger/dagger/issues/2680
+			_token: client.env.GITHUB_TOKEN
+
+			env: {
+				if client.env.GITHUB_TOKEN != _|_ {
+					GITHUB_TOKEN: client.env.GITHUB_TOKEN
 				}
 			}
 		}
