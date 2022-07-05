@@ -25,9 +25,7 @@ import (
 		"source": source
 		input:    _image.output
 		command: {
-			// name: "goreleaser"
-			name: "release"
-			// args: ["release"]
+			name: "goreleaser"
 		}
 	}
 }

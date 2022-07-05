@@ -240,10 +240,12 @@ mv *.zip /result
 			}
 
 			command: {
-				flags: {
-					"--skip-publish":  true
-					"--skip-announce": true
-					"--snapshot":      true
+				if client.env.CI != "true" {
+					flags: {
+						"--skip-publish":  true
+						"--skip-announce": true
+						"--snapshot":      true
+					}
 				}
 			}
 		}
