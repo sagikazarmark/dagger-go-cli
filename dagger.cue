@@ -38,6 +38,7 @@ dagger.#Plan & {
 		GITHUB_TOKEN?:     dagger.#Secret
 		GIT_TAG?:          string
 		GITHUB_REF_NAME?:  string
+		GITHUB_REF_TYPE:   string | *""
 	}
 	client: filesystem: "./_build": write: contents: actions.package.output
 	actions: {
@@ -140,6 +141,22 @@ dagger.#Plan & {
 			}
 		}
 
+		"goreleaser": goreleaser.#Release & {
+			source: _source
+
+			dryRun:   client.env.CI != "true"
+			snapshot: client.env.CI != "true" || client.env.GITHUB_REF_TYPE != "tag"
+
+			// Fixes https://github.com/dagger/dagger/issues/2680
+			// _token: client.env.GITHUB_TOKEN
+
+			env: {
+				if client.env.GITHUB_TOKEN != _|_ {
+					GITHUB_TOKEN: client.env.GITHUB_TOKEN
+				}
+			}
+		}
+
 		package: {
 			unix: {
 				"linux/amd64":  _
@@ -225,29 +242,6 @@ mv *.zip /result
 			}
 
 			output: _packages.output
-		}
-
-		release: goreleaser.#Release & {
-			source: _source
-
-			// Fixes https://github.com/dagger/dagger/issues/2680
-			_token: client.env.GITHUB_TOKEN
-
-			env: {
-				if client.env.GITHUB_TOKEN != _|_ {
-					GITHUB_TOKEN: client.env.GITHUB_TOKEN
-				}
-			}
-
-			command: {
-				if client.env.CI != "true" {
-					flags: {
-						"--skip-publish":  true
-						"--skip-announce": true
-						"--snapshot":      true
-					}
-				}
-			}
 		}
 
 		release2: github.#Release & {

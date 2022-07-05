@@ -15,6 +15,12 @@ import (
 	// GoReleaser version
 	version: *"1.9.2" | string
 
+	// Don't publish or announce the release
+	dryRun: bool | *false
+
+	// Build a snapshot instead of a tag
+	snapshot: bool | *false
+
 	_image: docker.#Pull & {
 		source: "index.docker.io/goreleaser/goreleaser:v\(version)"
 	}
@@ -26,6 +32,17 @@ import (
 		input:    _image.output
 		command: {
 			name: "goreleaser"
+
+			flags: {
+				if dryRun {
+					"--skip-publish":  true
+					"--skip-announce": true
+				}
+
+				if snapshot {
+					"--snapshot": true
+				}
+			}
 		}
 	}
 }
