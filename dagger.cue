@@ -36,8 +36,8 @@ dagger.#Plan & {
 		GITHUB_WORKFLOW:   string | *""
 		CODECOV_TOKEN?:    dagger.#Secret
 		GITHUB_TOKEN?:     dagger.#Secret
-		GIT_TAG?:          string
-		GITHUB_REF_NAME?:  string
+		GIT_TAG:           string | *""
+		GITHUB_REF_NAME:   string | *""
 		GITHUB_REF_TYPE:   string | *""
 	}
 	client: filesystem: "./_build": write: contents: actions.package.output
@@ -147,9 +147,6 @@ dagger.#Plan & {
 			dryRun:   client.env.CI != "true"
 			snapshot: client.env.CI != "true" || client.env.GITHUB_REF_TYPE != "tag"
 
-			// Fixes https://github.com/dagger/dagger/issues/2680
-			// _token: client.env.GITHUB_TOKEN
-
 			env: {
 				if client.env.GITHUB_TOKEN != _|_ {
 					GITHUB_TOKEN: client.env.GITHUB_TOKEN
@@ -244,34 +241,15 @@ mv *.zip /result
 			output: _packages.output
 		}
 
-		release2: github.#Release & {
+		release: github.#Release & {
 			source:    _source
 			artifacts: package.output
 
-			files: [
-				"/artifacts/dagger-go-cli_linux_amd64.tar.gz",
-				"/artifacts/dagger-go-cli_darwin_amd64.tar.gz",
-				"/artifacts/dagger-go-cli_windows_amd64.zip",
-			]
+			tag: client.env.GIT_TAG
 
-			tag: "v0.0.1"
-
-			// Fixes https://github.com/dagger/dagger/issues/2680
-			_tag1: client.env.GIT_TAG
-
-			if client.env.GIT_TAG != _|_ {
-				tag: client.env.GIT_TAG
-			}
-
-			// Fixes https://github.com/dagger/dagger/issues/2680
-			_tag2: client.env.GITHUB_REF_NAME
-
-			if client.env.GITHUB_REF_NAME != _|_ {
+			if client.env.GITHUB_REF_NAME != "" {
 				tag: client.env.GITHUB_REF_NAME
 			}
-
-			// Fixes https://github.com/dagger/dagger/issues/2680
-			_token: client.env.GITHUB_TOKEN
 
 			env: {
 				if client.env.GITHUB_TOKEN != _|_ {

@@ -15,9 +15,6 @@ import (
 	// Artifact files
 	artifacts: dagger.#FS
 
-	// Artifacts to upload to the release
-	files: [...string]
-
 	// Create release from this specific tag
 	tag: string
 
@@ -28,7 +25,7 @@ import (
 
 	bash.#Run & {
 		input: *_image.output | docker.#Image
-		script: contents: "gh release create \(tag), /artifacts/*"
+		script: contents: "gh release create --title '\(tag)' \(tag) /artifacts/*"
 		workdir: _sourcePath
 		mounts: {
 			"source": {
