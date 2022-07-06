@@ -6,7 +6,6 @@ import (
 	"dagger.io/dagger"
 	"dagger.io/dagger/core"
 
-	"universe.dagger.io/bash"
 	"universe.dagger.io/go"
 
 	"github.com/sagikazarmark/dagger-go-cli/ci/archive"
@@ -133,86 +132,54 @@ dagger.#Plan & {
 		}
 
 		package: {
-			unix: {
-				"linux/amd64":  _
-				"darwin/amd64": _
+			_files: core.#Copy & {
+				input:    dagger.#Scratch
+				contents: _source
+				include: [
+					"README.md",
+					"LICENSE",
+				]
+			}
 
-				[platform=string]: bash.#Run & {
-					_image: archive.#Image
+			_archives: {
+				"linux/amd64":   _
+				"darwin/amd64":  _
+				"windows/amd64": _
 
-					input: _image.output
-
-					mounts: {
-						"source": {
-							dest:     "/src"
-							contents: _source
-						}
-						"output": {
-							dest: "/output"
+				[platform=string]: archive.#Create & {
+					_source: core.#Merge & {
+						inputs: [
+							_files.output,
 							if platform == "darwin/amd64" {
-								contents: build."darwin/amd64".output
-							}
+								build."darwin/amd64".output
+							},
 							if platform == "linux/amd64" {
-								contents: build."linux/amd64".output
-							}
-						}
+								build."linux/amd64".output
+							},
+							if platform == "windows/amd64" {
+								build."windows/amd64".output
+							},
+						]
 					}
 
-					export: directories: "/result": _
+					source: _source.output
 
 					_os:   strings.Split(platform, "/")[0]
 					_arch: strings.Split(platform, "/")[1]
-
-					script: contents: """
-mkdir -p /result
-mkdir -p /archive
-cp /output/dagger-go-cli /archive
-cp /src/README.md /archive
-cp /src/LICENSE /archive
-cd /archive
-tar -czvf dagger-go-cli_\(_os)_\(_arch).tar.gz *
-mv *.tar.gz /result
-"""
-				}
-			}
-			windows: bash.#Run & {
-				_image: archive.#Image
-
-				input: _image.output
-
-				mounts: {
-					"source": {
-						dest:     "/src"
-						contents: _source
+					_type: string | *"tar.gz"
+					if _os == "windows" {
+						_type: "zip"
 					}
-					"output": {
-						dest:     "/output"
-						contents: build."windows/amd64".output
-					}
+
+					name: "dagger-go-cli_\(_os)_\(_arch).\(_type)"
 				}
-
-				export: directories: "/result": _
-
-				_os:   "windows"
-				_arch: "amd64"
-
-				script: contents: """
-mkdir -p /result
-mkdir -p /archive
-cp /output/dagger-go-cli.exe /archive
-cp /src/README.md /archive
-cp /src/LICENSE /archive
-cd /archive
-7z a dagger-go-cli_\(_os)_\(_arch).zip *
-mv *.zip /result
-"""
 			}
 
 			_packages: core.#Merge & {
 				inputs: [
-					package.unix."linux/amd64".export.directories."/result",
-					package.unix."darwin/amd64".export.directories."/result",
-					package.windows.export.directories."/result",
+					package._archives."linux/amd64".export.directories."/result",
+					package._archives."darwin/amd64".export.directories."/result",
+					package._archives."windows/amd64".export.directories."/result",
 				]
 			}
 
