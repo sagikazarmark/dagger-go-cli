@@ -40,7 +40,6 @@ dagger.#Plan & {
 		GITHUB_REF_NAME:   string | *""
 		GITHUB_REF_TYPE:   string | *""
 	}
-	client: filesystem: "./_build": write: contents: actions.package.output
 	actions: {
 		_source: client.filesystem["."].read.contents
 
@@ -96,13 +95,6 @@ dagger.#Plan & {
 						file:   "/src/coverage.out"
 
 						// Fixes https://github.com/dagger/dagger/issues/2680
-						// _env: client.env
-
-						// if _env.CODECOV_TOKEN != _|_ {
-						//  token: _env.CODECOV_TOKEN
-						// }
-
-						// Fixes https://github.com/dagger/dagger/issues/2680
 						_token: client.env.CODECOV_TOKEN
 
 						if client.env.CODECOV_TOKEN != _|_ {
@@ -137,19 +129,6 @@ dagger.#Plan & {
 					source:  _source
 					version: "1.46"
 					always:  true
-				}
-			}
-		}
-
-		"goreleaser": goreleaser.#Release & {
-			source: _source
-
-			dryRun:   client.env.CI != "true"
-			snapshot: client.env.CI != "true" || client.env.GITHUB_REF_TYPE != "tag"
-
-			env: {
-				if client.env.GITHUB_TOKEN != _|_ {
-					GITHUB_TOKEN: client.env.GITHUB_TOKEN
 				}
 			}
 		}
@@ -241,19 +220,33 @@ mv *.zip /result
 			output: _packages.output
 		}
 
-		release: github.#Release & {
-			source:    _source
-			artifacts: package.output
+		release: {
+			"goreleaser": goreleaser.#Release & {
+				source: _source
 
-			tag: client.env.GIT_TAG
+				dryRun:   client.env.CI != "true" || client.env.GITHUB_REF_TYPE != "tag"
+				snapshot: client.env.CI != "true" || client.env.GITHUB_REF_TYPE != "tag"
 
-			if client.env.GITHUB_REF_NAME != "" {
-				tag: client.env.GITHUB_REF_NAME
+				env: {
+					if client.env.GITHUB_TOKEN != _|_ {
+						GITHUB_TOKEN: client.env.GITHUB_TOKEN
+					}
+				}
 			}
+			"github": github.#Release & {
+				source:    _source
+				artifacts: package.output
 
-			env: {
-				if client.env.GITHUB_TOKEN != _|_ {
-					GITHUB_TOKEN: client.env.GITHUB_TOKEN
+				tag: client.env.GIT_TAG
+
+				if client.env.GITHUB_REF_NAME != "" {
+					tag: client.env.GITHUB_REF_NAME
+				}
+
+				env: {
+					if client.env.GITHUB_TOKEN != _|_ {
+						GITHUB_TOKEN: client.env.GITHUB_TOKEN
+					}
 				}
 			}
 		}

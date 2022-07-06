@@ -13,7 +13,7 @@ import (
 	source: dagger.#FS
 
 	// GoReleaser version
-	version: *"1.9.2" | string
+	version: *"1.10.1" | string
 
 	// Don't publish or announce the release
 	dryRun: bool | *false
