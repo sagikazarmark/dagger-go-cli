@@ -29,3 +29,5 @@ jobs:
           cmds: |
             project update
             do release goreleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
