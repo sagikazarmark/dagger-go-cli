@@ -1,6 +1,6 @@
 builds:
     - main: .
-      binary: hello
+      binary: dagger-go-cli
       env:
           - CGO_ENABLED=0
       goos:
