@@ -18,7 +18,6 @@ import (
 
 dagger.#Plan & {
 	client: filesystem: ".": read: exclude: [
-		".github",
 		"bin",
 		"build",
 		"tmp",
