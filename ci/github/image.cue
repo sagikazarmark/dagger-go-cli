@@ -17,27 +17,7 @@ import (
 			docker.#Run & {
 				command: {
 					name: "apk"
-					args: ["add", "bash"]
-					flags: {
-						"-U":         true
-						"--no-cache": true
-					}
-				}
-			},
-			docker.#Run & {
-				command: {
-					name: "apk"
-					args: ["add", "curl"]
-					flags: {
-						"-U":         true
-						"--no-cache": true
-					}
-				}
-			},
-			docker.#Run & {
-				command: {
-					name: "apk"
-					args: ["add", "git"]
+					args: ["add", "bash", "curl", "git"]
 					flags: {
 						"-U":         true
 						"--no-cache": true
