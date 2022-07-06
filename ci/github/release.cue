@@ -38,25 +38,4 @@ import (
 			}
 		}
 	}
-
-	// docker.#Run & {
-	//  input: *_image.output | docker.#Image
-	//  // entrypoint: ["/bin/bash", "-c"]
-	//  command: {
-	//   name: "gh"
-	//   args: ["release", "create", tag, "./*"]
-	//   // args: ["release", "create", tag] + files
-	//  }
-	//  workdir: _sourcePath
-	//  mounts: {
-	//   "source": {
-	//    dest:     _sourcePath
-	//    contents: source
-	//   }
-	//   "artifacts": {
-	//    dest:     _artifactPath
-	//    contents: artifacts
-	//   }
-	//  }
-	// }
 }
