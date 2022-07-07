@@ -6,6 +6,7 @@
 
 This repository serves as an example for using [Dagger](https://dagger.io/) as a CI solution for a Go CLI tool.
 
+It's also the model repository for my [Building a CI pipeline for a Go CLI application with Dagger](https://sagikazarmark.hu/blog/dagger-go-cli/) post (available on [dev.to](https://dev.to/sagikazarmark/building-a-ci-pipeline-for-a-go-cli-application-with-dagger-1ik5) as well).
 
 ## Setup
 
