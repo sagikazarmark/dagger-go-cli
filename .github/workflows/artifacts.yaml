@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: v1.10.1
           args: release --rm-dist
