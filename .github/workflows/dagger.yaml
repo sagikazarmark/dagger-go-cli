@@ -30,7 +30,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
 
       - name: Dagger
-        uses: dagger/dagger-for-github@v3
+        uses: dagger/dagger-for-github@v4
         with:
           cmds: |
             project update
@@ -59,7 +59,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
 
       - name: Dagger
-        uses: dagger/dagger-for-github@v3
+        uses: dagger/dagger-for-github@v4
         with:
           cmds: |
             project update
@@ -88,7 +88,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
 
       - name: Dagger
-        uses: dagger/dagger-for-github@v3
+        uses: dagger/dagger-for-github@v4
         with:
           cmds: |
             project update
